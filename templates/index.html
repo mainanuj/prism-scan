@@ -134,57 +134,96 @@
     </nav>
 
     <section class="pt-8 text-center sm:pt-14">
-      <div class="inline-flex items-center gap-2 rounded-full border border-violet-400/20 bg-violet-400/5 px-3 py-1.5 text-xs font-semibold text-violet-200">
-        <span class="h-1.5 w-1.5 rounded-full bg-violet-300"></span> FAST · PRIVATE · BEGINNER-FRIENDLY
+      <div class="inline-flex items-center gap-2 rounded-full border border-violet-400/25 bg-violet-400/10 px-3.5 py-1.5 text-xs font-semibold text-violet-200 shadow-sm backdrop-blur-md">
+        <span class="relative flex h-2 w-2">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2 bg-cyan-400"></span>
+        </span>
+        <span class="tracking-wide">FAST</span>
+        <span class="text-violet-400/50">•</span>
+        <span class="tracking-wide">PRIVATE</span>
+        <span class="text-violet-400/50">•</span>
+        <span class="tracking-wide">BEGINNER-FRIENDLY</span>
       </div>
-      <h1 class="mx-auto mt-5 max-w-3xl font-display text-4xl font-bold leading-[1.1] tracking-tight text-white sm:text-6xl">
+
+      <h1 class="mx-auto mt-6 max-w-4xl font-display text-4xl font-extrabold leading-[1.1] tracking-tight text-white sm:text-6xl lg:text-7xl">
         See what the internet<br>
-        <span class="bg-gradient-to-r from-violet-300 via-fuchsia-300 to-cyan-300 bg-clip-text text-transparent">already sees.</span>
+        <span class="bg-gradient-to-r from-violet-300 via-fuchsia-300 to-cyan-300 bg-clip-text text-transparent drop-shadow-sm">already sees about you.</span>
       </h1>
-      <p class="mx-auto mt-5 max-w-xl text-base leading-7 text-violet-100/60 sm:text-lg">
-        One pass over common open ports, HTTP security headers, and accidental server disclosure — with a plain-language fix for each finding.
+
+      <p class="mx-auto mt-6 max-w-2xl text-base leading-7 text-violet-100/70 sm:text-lg">
+        One-click surface audit across open service ports, security header posture, and software banner disclosure — paired with actionable, beginner-friendly fixes.
       </p>
     </section>
 
-    <section id="scan-panel" class="glass tilt relative mx-auto mt-10 max-w-3xl rounded-[28px] p-3 sm:p-4">
+    <!-- Scan Search Input Panel -->
+    <section id="scan-panel" class="glass tilt relative mx-auto mt-10 max-w-3xl rounded-[28px] p-3 sm:p-4 shadow-2xl">
       <div class="glass-edge pointer-events-none absolute inset-0 rounded-[28px] p-px"></div>
       <form id="scan-form" class="relative flex flex-col gap-3 sm:flex-row">
-        <div class="field-glass flex min-w-0 flex-1 items-center gap-3 rounded-2xl px-4 transition">
-          <svg viewBox="0 0 24 24" class="h-5 w-5 shrink-0 text-violet-300/60" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><path d="m18 18 3 3M9 12h6M12 9v6"/></svg>
+        <div class="field-glass flex min-w-0 flex-1 items-center gap-3 rounded-2xl px-4 transition group focus-within:border-violet-400/60 focus-within:ring-2 focus-within:ring-violet-400/20">
+          <div class="flex items-center gap-1.5 shrink-0 text-violet-300/60 font-mono text-xs border-r border-white/10 pr-2.5">
+            <svg viewBox="0 0 24 24" class="h-4.5 w-4.5 text-cyan-300" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          </div>
           <label for="target" class="sr-only">Target domain, IP address, or URL</label>
-          <input id="target" type="text" required autocomplete="url" placeholder="Enter a domain, IP address, or URL…" class="h-14 min-w-0 flex-1 bg-transparent font-mono text-sm text-white outline-none placeholder:font-sans placeholder:text-violet-200/30 sm:text-base">
+          <input id="target" type="text" required autocomplete="url" placeholder="Enter a domain, IP address, or URL (e.g. example.com)…" class="h-14 min-w-0 flex-1 bg-transparent font-mono text-sm text-white outline-none placeholder:font-sans placeholder:text-violet-200/35 sm:text-base">
+          <kbd class="hidden sm:inline-block font-mono text-[10px] font-semibold text-violet-200/40 bg-white/5 border border-white/10 px-2 py-1 rounded-md">↵ Enter</kbd>
         </div>
-        <button id="scan-button" type="submit" class="btn-3d inline-flex h-14 items-center justify-center gap-2 rounded-2xl px-6 text-sm font-bold text-white transition focus:outline-none focus:ring-4 focus:ring-violet-400/30 disabled:cursor-not-allowed disabled:opacity-60">
-          <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 13c0 5-3.5 7-8 8-4.5-1-8-3-8-8V5l8-3 8 3v8Z"/><path d="M12 8v5l3 2"/></svg>
+
+        <button id="scan-button" type="submit" class="btn-3d inline-flex h-14 items-center justify-center gap-2.5 rounded-2xl px-7 text-sm font-bold text-white transition focus:outline-none focus:ring-4 focus:ring-violet-400/30 disabled:cursor-not-allowed disabled:opacity-60 shrink-0">
+          <svg viewBox="0 0 24 24" class="h-5 w-5 text-violet-100" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 13c0 5-3.5 7-8 8-4.5-1-8-3-8-8V5l8-3 8 3v8Z"/><path d="M12 8v5l3 2"/></svg>
           <span>Start scan</span>
         </button>
       </form>
+
+      <!-- Preset Quick Try Pills -->
+      <div class="mt-3.5 flex flex-wrap items-center justify-between gap-2 px-2 text-xs">
+        <div class="flex items-center gap-2 flex-wrap">
+          <span class="text-violet-200/40 font-medium">Quick test:</span>
+          <button type="button" onclick="setPresetTarget('example.com')" class="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 font-mono text-[11px] text-violet-200 hover:bg-white/10 hover:border-violet-400/40 transition">example.com</button>
+          <button type="button" onclick="setPresetTarget('github.com')" class="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 font-mono text-[11px] text-violet-200 hover:bg-white/10 hover:border-violet-400/40 transition">github.com</button>
+          <button type="button" onclick="setPresetTarget('127.0.0.1')" class="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 font-mono text-[11px] text-violet-200 hover:bg-white/10 hover:border-violet-400/40 transition">127.0.0.1</button>
+        </div>
+        <span class="text-[11px] text-violet-200/35 hidden sm:inline">No login required</span>
+      </div>
+
       <p id="error" class="relative hidden px-2 pt-3 text-sm text-rose-300" role="alert"></p>
     </section>
 
     <p class="mx-auto mt-4 max-w-3xl text-center text-xs text-violet-200/40">Only scan systems that you own or have explicit permission to test.</p>
 
-    <section class="mx-auto mt-14 grid max-w-3xl gap-4 sm:grid-cols-3" aria-label="Scanner capabilities">
-      <div class="glass tilt rounded-2xl p-5">
-        <div class="mb-4 flex h-9 w-9 items-center justify-center rounded-xl bg-violet-400/10 text-violet-200">
-          <svg viewBox="0 0 24 24" class="h-4.5 w-4.5" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 17h16M4 12h16M4 7h16"/><circle cx="17" cy="7" r="1.4" fill="currentColor" stroke="none"/><circle cx="9" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="14" cy="17" r="1.4" fill="currentColor" stroke="none"/></svg>
+    <!-- Capabilities Cards Section -->
+    <section class="mx-auto mt-12 grid max-w-3xl gap-4 sm:grid-cols-3" aria-label="Scanner capabilities">
+      <div class="glass tilt rounded-2xl p-5 border border-white/10 hover:border-violet-400/30 transition group">
+        <div class="mb-4 flex items-center justify-between">
+          <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-400/10 text-violet-200 group-hover:scale-110 transition-transform">
+            <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 17h16M4 12h16M4 7h16"/><circle cx="17" cy="7" r="1.4" fill="currentColor" stroke="none"/><circle cx="9" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="14" cy="17" r="1.4" fill="currentColor" stroke="none"/></svg>
+          </div>
+          <span class="rounded-full bg-violet-400/10 border border-violet-400/20 px-2.5 py-0.5 font-mono text-[10px] font-bold text-violet-300">TCP 21–8080</span>
         </div>
-        <h2 class="font-display font-semibold text-white">Port exposure</h2>
-        <p class="mt-1 text-sm leading-6 text-violet-100/50">Checks six commonly targeted service ports.</p>
+        <h2 class="font-display font-semibold text-white group-hover:text-violet-200 transition">Port Exposure</h2>
+        <p class="mt-1.5 text-xs leading-5 text-violet-100/60">Checks six commonly targeted service ports (SSH, HTTP, MySQL, FTP).</p>
       </div>
-      <div class="glass tilt rounded-2xl p-5">
-        <div class="mb-4 flex h-9 w-9 items-center justify-center rounded-xl bg-fuchsia-400/10 text-fuchsia-200">
-          <svg viewBox="0 0 24 24" class="h-4.5 w-4.5" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M4 9.5h16"/></svg>
+
+      <div class="glass tilt rounded-2xl p-5 border border-white/10 hover:border-fuchsia-400/30 transition group">
+        <div class="mb-4 flex items-center justify-between">
+          <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-fuchsia-400/10 text-fuchsia-200 group-hover:scale-110 transition-transform">
+            <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M4 9.5h16"/></svg>
+          </div>
+          <span class="rounded-full bg-fuchsia-400/10 border border-fuchsia-400/20 px-2.5 py-0.5 font-mono text-[10px] font-bold text-fuchsia-300">CSP • HSTS</span>
         </div>
-        <h2 class="font-display font-semibold text-white">Header audit</h2>
-        <p class="mt-1 text-sm leading-6 text-violet-100/50">Reviews the security headers your browser relies on.</p>
+        <h2 class="font-display font-semibold text-white group-hover:text-fuchsia-200 transition">Header Audit</h2>
+        <p class="mt-1.5 text-xs leading-5 text-violet-100/60">Audits security headers required for clickjacking & MIME-sniff protection.</p>
       </div>
-      <div class="glass tilt rounded-2xl p-5">
-        <div class="mb-4 flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-400/10 text-cyan-200">
-          <svg viewBox="0 0 24 24" class="h-4.5 w-4.5" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m9 12 2 2 4-4"/><path d="M12 3 4.5 6v5c0 5.1 3.2 8.9 7.5 10 4.3-1.1 7.5-4.9 7.5-10V6L12 3Z"/></svg>
+
+      <div class="glass tilt rounded-2xl p-5 border border-white/10 hover:border-cyan-400/30 transition group">
+        <div class="mb-4 flex items-center justify-between">
+          <div class="flex items-center justify-center h-10 w-10 rounded-xl bg-cyan-400/10 text-cyan-200 group-hover:scale-110 transition-transform">
+            <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m9 12 2 2 4-4"/><path d="M12 3 4.5 6v5c0 5.1 3.2 8.9 7.5 10 4.3-1.1 7.5-4.9 7.5-10V6L12 3Z"/></svg>
+          </div>
+          <span class="rounded-full bg-cyan-400/10 border border-cyan-400/20 px-2.5 py-0.5 font-mono text-[10px] font-bold text-cyan-300">1-Click Fix</span>
         </div>
-        <h2 class="font-display font-semibold text-white">Plain-language fixes</h2>
-        <p class="mt-1 text-sm leading-6 text-violet-100/50">Every finding ships with a concrete next step.</p>
+        <h2 class="font-display font-semibold text-white group-hover:text-cyan-200 transition">Plain-Language Fixes</h2>
+        <p class="mt-1.5 text-xs leading-5 text-violet-100/60">Every finding ships with plain-English explanation & copyable fix snippet.</p>
       </div>
     </section>
 
@@ -388,6 +427,13 @@
 
     const form = document.getElementById('scan-form'), input = document.getElementById('target'), button = document.getElementById('scan-button'), loading = document.getElementById('loading'), report = document.getElementById('report'), error = document.getElementById('error');
     
+    function setPresetTarget(val) {
+      if (input) {
+        input.value = val;
+        input.focus();
+      }
+    }
+
     let currentScanData = null;
     let activeFilter = 'all';
 
