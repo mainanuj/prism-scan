@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prism — Surface-Level Security Scan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          display: ['"Space Grotesk"', 'ui-sans-serif', 'sans-serif'],
+          sans: ['Inter', 'ui-sans-serif', 'sans-serif'],
+          mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+        },
+        keyframes: {
+          enter: { '0%': { opacity: 0, transform: 'translateY(14px) scale(.985)' }, '100%': { opacity: 1, transform: 'translateY(0) scale(1)' } },
+          drift1: { '0%,100%': { transform: 'translate(0,0)' }, '50%': { transform: 'translate(4%,6%)' } },
+          drift2: { '0%,100%': { transform: 'translate(0,0)' }, '50%': { transform: 'translate(-5%,-4%)' } },
+          drift3: { '0%,100%': { transform: 'translate(0,0)' }, '50%': { transform: 'translate(3%,-5%)' } },
+          spinring: { '0%': { transform: 'rotate(0deg)' }, '100%': { transform: 'rotate(360deg)' } },
+        },
+        animation: {
+          enter: 'enter .5s cubic-bezier(.16,1,.3,1) both',
+          drift1: 'drift1 17s ease-in-out infinite',
+          drift2: 'drift2 21s ease-in-out infinite',
+          drift3: 'drift3 25s ease-in-out infinite',
+          spinring: 'spinring 1.1s linear infinite',
+        },
+      },
+    },
+  };
+</script>
+<style>
+  :root {
+    --violet: 139 92 246;
+    --magenta: 236 72 153;
+    --cyan: 45 212 219;
+    --ink: 6 4 14;
+  }
+  body { background: rgb(var(--ink)); }
+
+  /* Fine grain to keep the deep background from looking flat / plasticky */
+  .grain {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+  }
+
+  .glow-orb { filter: blur(64px); }
+
+  /* Glass panel: layered translucency + top inner highlight to fake refraction */
+  .glass {
+    background: linear-gradient(160deg, rgba(255,255,255,.07), rgba(255,255,255,.015) 40%, rgba(255,255,255,.03));
+    border: 1px solid rgba(255,255,255,.09);
+    backdrop-filter: blur(22px) saturate(140%);
+    -webkit-backdrop-filter: blur(22px) saturate(140%);
+    box-shadow:
+      0 1px 0 0 rgba(255,255,255,.10) inset,
+      0 0 0 1px rgba(255,255,255,.02) inset,
+      0 30px 60px -25px rgba(0,0,0,.65),
+      0 8px 20px -12px rgba(0,0,0,.55);
+  }
+  .glass-edge {
+    background: linear-gradient(115deg, rgba(255,255,255,.5), transparent 30%);
+    mask: linear-gradient(#000,#000) content-box, linear-gradient(#000,#000);
+  }
+  .tilt { transform-style: preserve-3d; transition: transform .35s cubic-bezier(.16,1,.3,1); will-change: transform; }
+
+  .field-glass {
+    background: rgba(255,255,255,.035);
+    border: 1px solid rgba(255,255,255,.10);
+    box-shadow: 0 1px 0 0 rgba(255,255,255,.06) inset, 0 10px 24px -16px rgba(0,0,0,.6) inset;
+  }
+  .field-glass:focus-within {
+    border-color: rgba(167,139,250,.55);
+    box-shadow: 0 0 0 4px rgba(139,92,246,.14), 0 1px 0 0 rgba(255,255,255,.08) inset;
+  }
+
+  .btn-3d {
+    background: linear-gradient(160deg, rgb(167 139 250), rgb(139 92 246) 55%, rgb(109 40 217));
+    box-shadow: 0 1px 0 0 rgba(255,255,255,.4) inset, 0 -8px 18px -8px rgba(76,29,149,.7) inset, 0 14px 30px -12px rgba(124,58,237,.55);
+  }
+  .btn-3d:active { transform: translateY(1px); box-shadow: 0 1px 0 0 rgba(255,255,255,.3) inset, 0 -4px 10px -6px rgba(76,29,149,.6) inset, 0 6px 16px -10px rgba(124,58,237,.5); }
+
+  .ring-loader { border-radius: 9999px; background: conic-gradient(from 0deg, rgb(var(--violet)), rgb(var(--magenta)), rgb(var(--cyan)), rgb(var(--violet))); }
+  .ring-loader::before { content: ''; position: absolute; inset: 3px; border-radius: 9999px; background: rgb(10 7 20); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-drift1, .animate-drift2, .animate-drift3, .animate-spinring { animation: none !important; }
+    .tilt { transition: none !important; }
+  }
+</style>
+</head>
+<body class="min-h-screen overflow-x-hidden font-sans text-violet-50 antialiased">
+
+  <div class="pointer-events-none fixed inset-0 z-0 grain"></div>
+  <div class="pointer-events-none fixed inset-0 z-0 overflow-hidden">
+    <div class="glow-orb animate-drift1 absolute -left-24 -top-32 h-[30rem] w-[30rem] rounded-full bg-violet-600/25"></div>
+    <div class="glow-orb animate-drift2 absolute right-[-6rem] top-10 h-[26rem] w-[26rem] rounded-full bg-fuchsia-500/20"></div>
+    <div class="glow-orb animate-drift3 absolute bottom-[-8rem] left-1/3 h-[28rem] w-[28rem] rounded-full bg-cyan-400/15"></div>
+  </div>
+
+  <main class="relative z-10 mx-auto max-w-6xl px-4 pb-16 sm:px-6 lg:px-8">
+    <nav class="flex items-center justify-between py-6 sm:py-8">
+      <a href="/" class="group flex items-center gap-3" aria-label="Prism home">
+        <span class="glass tilt relative flex h-10 w-10 items-center justify-center rounded-2xl text-violet-200">
+          <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2 3 7v6c0 5 3.8 8.7 9 9 5.2-.3 9-4 9-9V7l-9-5Z"/><path d="M12 2v20M3 7l9 5 9-5"/></svg>
+        </span>
+        <span>
+          <span class="block font-display text-base font-bold tracking-tight text-white">Prism</span>
+          <span class="block text-[10px] font-semibold uppercase tracking-[.2em] text-violet-300/60">Surface security scan</span>
+        </span>
+      </a>
+      <span class="hidden items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/5 px-3 py-1.5 text-xs font-medium text-emerald-300 sm:flex">
+        <span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span> Scanner ready
+      </span>
+    </nav>
+
+    <section class="pt-8 text-center sm:pt-14">
+      <div class="inline-flex items-center gap-2 rounded-full border border-violet-400/20 bg-violet-400/5 px-3 py-1.5 text-xs font-semibold text-violet-200">
+        <span class="h-1.5 w-1.5 rounded-full bg-violet-300"></span> FAST · PRIVATE · BEGINNER-FRIENDLY
+      </div>
+      <h1 class="mx-auto mt-5 max-w-3xl font-display text-4xl font-bold leading-[1.1] tracking-tight text-white sm:text-6xl">
+        See what the internet<br>
+        <span class="bg-gradient-to-r from-violet-300 via-fuchsia-300 to-cyan-300 bg-clip-text text-transparent">already sees.</span>
+      </h1>
+      <p class="mx-auto mt-5 max-w-xl text-base leading-7 text-violet-100/60 sm:text-lg">
+        One pass over common open ports, HTTP security headers, and accidental server disclosure — with a plain-language fix for each finding.
+      </p>
+    </section>
+
+    <section id="scan-panel" class="glass tilt relative mx-auto mt-10 max-w-3xl rounded-[28px] p-3 sm:p-4">
+      <div class="glass-edge pointer-events-none absolute inset-0 rounded-[28px] p-px"></div>
+      <form id="scan-form" class="relative flex flex-col gap-3 sm:flex-row">
+        <div class="field-glass flex min-w-0 flex-1 items-center gap-3 rounded-2xl px-4 transition">
+          <svg viewBox="0 0 24 24" class="h-5 w-5 shrink-0 text-violet-300/60" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><path d="m18 18 3 3M9 12h6M12 9v6"/></svg>
+          <label for="target" class="sr-only">Target domain, IP address, or URL</label>
+          <input id="target" type="text" required autocomplete="url" placeholder="Enter a domain, IP address, or URL…" class="h-14 min-w-0 flex-1 bg-transparent font-mono text-sm text-white outline-none placeholder:font-sans placeholder:text-violet-200/30 sm:text-base">
+        </div>
+        <button id="scan-button" type="submit" class="btn-3d inline-flex h-14 items-center justify-center gap-2 rounded-2xl px-6 text-sm font-bold text-white transition focus:outline-none focus:ring-4 focus:ring-violet-400/30 disabled:cursor-not-allowed disabled:opacity-60">
+          <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 13c0 5-3.5 7-8 8-4.5-1-8-3-8-8V5l8-3 8 3v8Z"/><path d="M12 8v5l3 2"/></svg>
+          <span>Start scan</span>
+        </button>
+      </form>
+      <p id="error" class="relative hidden px-2 pt-3 text-sm text-rose-300" role="alert"></p>
+    </section>
+
+    <p class="mx-auto mt-4 max-w-3xl text-center text-xs text-violet-200/40">Only scan systems that you own or have explicit permission to test.</p>
+
+    <section class="mx-auto mt-14 grid max-w-3xl gap-4 sm:grid-cols-3" aria-label="Scanner capabilities">
+      <div class="glass tilt rounded-2xl p-5">
+        <div class="mb-4 flex h-9 w-9 items-center justify-center rounded-xl bg-violet-400/10 text-violet-200">
+          <svg viewBox="0 0 24 24" class="h-4.5 w-4.5" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 17h16M4 12h16M4 7h16"/><circle cx="17" cy="7" r="1.4" fill="currentColor" stroke="none"/><circle cx="9" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="14" cy="17" r="1.4" fill="currentColor" stroke="none"/></svg>
+        </div>
+        <h2 class="font-display font-semibold text-white">Port exposure</h2>
+        <p class="mt-1 text-sm leading-6 text-violet-100/50">Checks six commonly targeted service ports.</p>
+      </div>
+      <div class="glass tilt rounded-2xl p-5">
+        <div class="mb-4 flex h-9 w-9 items-center justify-center rounded-xl bg-fuchsia-400/10 text-fuchsia-200">
+          <svg viewBox="0 0 24 24" class="h-4.5 w-4.5" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M4 9.5h16"/></svg>
+        </div>
+        <h2 class="font-display font-semibold text-white">Header audit</h2>
+        <p class="mt-1 text-sm leading-6 text-violet-100/50">Reviews the security headers your browser relies on.</p>
+      </div>
+      <div class="glass tilt rounded-2xl p-5">
+        <div class="mb-4 flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-400/10 text-cyan-200">
+          <svg viewBox="0 0 24 24" class="h-4.5 w-4.5" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m9 12 2 2 4-4"/><path d="M12 3 4.5 6v5c0 5.1 3.2 8.9 7.5 10 4.3-1.1 7.5-4.9 7.5-10V6L12 3Z"/></svg>
+        </div>
+        <h2 class="font-display font-semibold text-white">Plain-language fixes</h2>
+        <p class="mt-1 text-sm leading-6 text-violet-100/50">Every finding ships with a concrete next step.</p>
+      </div>
+    </section>
+
+    <section id="loading" class="glass mx-auto mt-10 hidden max-w-3xl rounded-[28px] p-6 sm:p-8">
+      <div class="flex items-center gap-4">
+        <div class="ring-loader relative h-11 w-11 shrink-0 animate-spinring"></div>
+        <div>
+          <p class="font-display font-semibold text-white">Scanning target</p>
+          <p id="loading-target" class="mt-1 text-sm text-violet-100/50">Checking network exposure and web configuration…</p>
+        </div>
+      </div>
+      <div class="mt-6 h-1.5 overflow-hidden rounded-full bg-white/5">
+        <div class="h-full w-1/2 animate-pulse rounded-full bg-gradient-to-r from-violet-400 via-fuchsia-400 to-cyan-300"></div>
+      </div>
+    </section>
+
+    <section id="report" class="mx-auto mt-10 hidden max-w-3xl animate-enter">
+      <div class="glass overflow-hidden rounded-[28px]">
+        <header class="border-b border-white/8 px-6 py-6 sm:px-8">
+          <div class="flex flex-wrap items-start justify-between gap-4">
+            <div class="flex items-center gap-4">
+              <div class="glass flex h-11 w-11 items-center justify-center rounded-2xl text-violet-200">
+                <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><path d="m9 12 2 2 4-4"/></svg>
+              </div>
+              <div>
+                <p class="text-xs font-semibold uppercase tracking-[.18em] text-violet-200/50">Scan complete</p>
+                <h2 id="report-target" class="mt-1 font-display text-xl font-bold text-white"></h2>
+              </div>
+            </div>
+            <span id="finding-count" class="rounded-full border px-3 py-1.5 text-xs font-bold"></span>
+          </div>
+        </header>
+        <div class="p-6 sm:p-8">
+          <div class="grid gap-5 md:grid-cols-[.85fr_1.15fr]">
+            <div class="field-glass rounded-2xl p-5">
+              <div class="flex items-center justify-between">
+                <h3 class="font-display font-semibold text-white">Open ports</h3>
+                <span id="port-count" class="text-xs text-violet-200/50"></span>
+              </div>
+              <div id="ports" class="mt-4 flex flex-wrap gap-2"></div>
+            </div>
+            <div class="field-glass rounded-2xl p-5">
+              <h3 class="font-display font-semibold text-white">What we checked</h3>
+              <div class="mt-3 grid grid-cols-2 gap-2 text-xs text-violet-100/60">
+                <span class="rounded-lg bg-white/5 px-2.5 py-2">Common TCP ports</span>
+                <span class="rounded-lg bg-white/5 px-2.5 py-2">CSP &amp; frame policy</span>
+                <span class="rounded-lg bg-white/5 px-2.5 py-2">HTTPS enforcement</span>
+                <span class="rounded-lg bg-white/5 px-2.5 py-2">Banner disclosure</span>
+              </div>
+            </div>
+          </div>
+          <div class="mt-8">
+            <div class="flex items-center justify-between">
+              <h3 class="font-display text-lg font-bold text-white">Findings</h3>
+              <span class="text-xs text-violet-200/50">Prioritized by severity</span>
+            </div>
+            <div id="findings" class="mt-4 space-y-3"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // Gentle pointer-driven 3D tilt for glass panels — decorative, skipped for reduced-motion.
+    (() => {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      const panels = document.querySelectorAll('.tilt');
+      panels.forEach(panel => {
+        panel.addEventListener('mousemove', event => {
+          const rect = panel.getBoundingClientRect();
+          const px = (event.clientX - rect.left) / rect.width - 0.5;
+          const py = (event.clientY - rect.top) / rect.height - 0.5;
+          panel.style.transform = `perspective(900px) rotateX(${py * -4}deg) rotateY(${px * 5}deg) translateZ(0)`;
+        });
+        panel.addEventListener('mouseleave', () => { panel.style.transform = 'perspective(900px) rotateX(0) rotateY(0)'; });
+      });
+    })();
+
+    const form = document.getElementById('scan-form'), input = document.getElementById('target'), button = document.getElementById('scan-button'), loading = document.getElementById('loading'), report = document.getElementById('report'), error = document.getElementById('error');
+    const severity = {
+      High: ['border-rose-400/25 bg-rose-400/10 text-rose-200', 'bg-rose-400'],
+      Medium: ['border-amber-400/25 bg-amber-400/10 text-amber-200', 'bg-amber-400'],
+      Low: ['border-cyan-400/25 bg-cyan-400/10 text-cyan-200', 'bg-cyan-400'],
+      Info: ['border-white/15 bg-white/5 text-violet-100/70', 'bg-violet-300'],
+    };
+    const escapeHtml = value => String(value).replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
+    const plural = (count, word) => `${count} ${word}${count === 1 ? '' : 's'}`;
+
+    function renderReport(data) {
+      const count = data.vulnerabilities.length;
+      document.getElementById('report-target').textContent = data.target;
+      const countLabel = document.getElementById('finding-count');
+      countLabel.textContent = count ? plural(count, 'finding') : 'No findings';
+      countLabel.className = `rounded-full border px-3 py-1.5 text-xs font-bold ${count ? 'border-amber-400/25 bg-amber-400/10 text-amber-200' : 'border-emerald-400/25 bg-emerald-400/10 text-emerald-200'}`;
+      document.getElementById('port-count').textContent = plural(data.open_ports.length, 'detected');
+      document.getElementById('ports').innerHTML = data.open_ports.length
+        ? data.open_ports.map(port => `<span class="rounded-lg border border-violet-400/25 bg-violet-400/10 px-2.5 py-1.5 font-mono text-xs font-bold text-violet-100">:${port}</span>`).join('')
+        : '<p class="text-sm leading-6 text-violet-100/50">No open ports found in the common-port list.</p>';
+      document.getElementById('findings').innerHTML = count ? data.vulnerabilities.map((item, index) => {
+        const [badge, dot] = severity[item.severity] || severity.Info;
+        return `<article class="group field-glass rounded-2xl p-5 transition hover:border-white/20">
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div class="flex gap-3">
+              <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full ${dot}"></span>
+              <div>
+                <p class="text-[11px] font-bold uppercase tracking-[.15em] text-violet-200/40">Finding ${String(index + 1).padStart(2, '0')}</p>
+                <h4 class="mt-1 font-display font-semibold text-white">${escapeHtml(item.issue)}</h4>
+              </div>
+            </div>
+            <span class="rounded-md border px-2.5 py-1 text-xs font-bold ${badge}">${escapeHtml(item.severity)}</span>
+          </div>
+          <p class="mt-4 pl-5 text-sm leading-6 text-violet-100/55">${escapeHtml(item.description)}</p>
+          <div class="ml-5 mt-4 border-l-2 border-violet-400/60 bg-violet-400/5 px-4 py-3 text-sm leading-6 text-violet-100/80">
+            <span class="font-semibold text-violet-200">Recommended fix</span><span class="mx-2 text-violet-300/30">/</span>${escapeHtml(item.suggestion)}
+          </div>
+        </article>`;
+      }).join('') : '<div class="field-glass rounded-2xl p-6 text-center"><div class="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-emerald-400/10 text-emerald-300">✓</div><h4 class="mt-3 font-display font-semibold text-emerald-200">No findings detected</h4><p class="mt-1 text-sm text-violet-100/50">The checked headers and common banner fields did not produce any findings.</p></div>';
+      report.classList.remove('hidden'); report.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    form.addEventListener('submit', async event => {
+      event.preventDefault(); const target = input.value.trim(); if (!target) return;
+      error.classList.add('hidden'); report.classList.add('hidden'); loading.classList.remove('hidden');
+      document.getElementById('loading-target').textContent = `Analyzing ${target}…`;
+      button.disabled = true; button.querySelector('span').textContent = 'Scanning…';
+      try {
+        const response = await fetch('/scan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ target }) });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Scan failed.');
+        renderReport(data);
+      } catch (err) {
+        error.textContent = err.message; error.classList.remove('hidden');
+      } finally {
+        loading.classList.add('hidden'); button.disabled = false; button.querySelector('span').textContent = 'Start scan';
+      }
+    });
+  </script>
+</body>
+</html>
