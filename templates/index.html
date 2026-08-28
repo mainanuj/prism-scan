@@ -88,9 +88,23 @@
   .ring-loader { border-radius: 9999px; background: conic-gradient(from 0deg, rgb(var(--violet)), rgb(var(--magenta)), rgb(var(--cyan)), rgb(var(--violet))); }
   .ring-loader::before { content: ''; position: absolute; inset: 3px; border-radius: 9999px; background: rgb(10 7 20); }
 
+  .active-tab {
+    background: rgba(255, 255, 255, 0.15) !important;
+    color: #ffffff !important;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .animate-drift1, .animate-drift2, .animate-drift3, .animate-spinring { animation: none !important; }
     .tilt { transition: none !important; }
+  }
+
+  @media print {
+    body { background: #090614 !important; color: #ffffff !important; }
+    .grain, .glow-orb, #scan-panel, nav, #loading, button, .filter-tabs-bar { display: none !important; }
+    #report { display: block !important; max-width: 100% !important; margin: 0 !important; animation: none !important; }
+    .glass, .field-glass { background: #130c24 !important; border: 1px solid rgba(255,255,255,0.15) !important; box-shadow: none !important; }
   }
 </style>
 </head>
@@ -187,47 +201,169 @@
       </div>
     </section>
 
-    <section id="report" class="mx-auto mt-10 hidden max-w-3xl animate-enter">
+    <section id="report" class="mx-auto mt-10 hidden max-w-4xl animate-enter">
       <div class="glass overflow-hidden rounded-[28px]">
-        <header class="border-b border-white/8 px-6 py-6 sm:px-8">
-          <div class="flex flex-wrap items-start justify-between gap-4">
+        <!-- Report Header -->
+        <header class="border-b border-white/10 px-6 py-6 sm:px-8 bg-white/[0.02]">
+          <div class="flex flex-wrap items-center justify-between gap-4">
             <div class="flex items-center gap-4">
-              <div class="glass flex h-11 w-11 items-center justify-center rounded-2xl text-violet-200">
-                <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><path d="m9 12 2 2 4-4"/></svg>
+              <div class="glass flex h-12 w-12 items-center justify-center rounded-2xl text-violet-200 shadow-inner">
+                <svg viewBox="0 0 24 24" class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
               </div>
               <div>
-                <p class="text-xs font-semibold uppercase tracking-[.18em] text-violet-200/50">Scan complete</p>
-                <h2 id="report-target" class="mt-1 font-display text-xl font-bold text-white"></h2>
+                <div class="flex items-center gap-2">
+                  <span class="text-[11px] font-bold uppercase tracking-[.2em] text-violet-300/60">Scan Complete</span>
+                  <span id="scan-timestamp" class="text-[11px] text-violet-200/40 font-mono"></span>
+                </div>
+                <h2 id="report-target" class="mt-0.5 font-display text-2xl font-bold text-white tracking-tight"></h2>
               </div>
             </div>
-            <span id="finding-count" class="rounded-full border px-3 py-1.5 text-xs font-bold"></span>
+
+            <!-- Export & Print Actions -->
+            <div class="flex items-center gap-2">
+              <button type="button" onclick="exportReportJson()" class="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-violet-200 hover:bg-white/10 transition">
+                <svg viewBox="0 0 24 24" class="h-4 w-4 text-violet-300" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                <span>Export JSON</span>
+              </button>
+              <button type="button" onclick="window.print()" class="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-violet-200 hover:bg-white/10 transition">
+                <svg viewBox="0 0 24 24" class="h-4 w-4 text-violet-300" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                <span>Print</span>
+              </button>
+            </div>
           </div>
         </header>
-        <div class="p-6 sm:p-8">
-          <div class="grid gap-5 md:grid-cols-[.85fr_1.15fr]">
+
+        <div class="p-6 sm:p-8 space-y-6">
+          <!-- Security Scorecard & Breakdown -->
+          <div class="grid gap-4 md:grid-cols-12">
+            <!-- Scorecard Card -->
+            <div class="md:col-span-5 field-glass relative overflow-hidden rounded-2xl p-6 flex flex-col justify-between">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold uppercase tracking-wider text-violet-200/50">Security Health</span>
+                <span id="score-grade-badge" class="rounded-full border px-3 py-1 text-xs font-bold"></span>
+              </div>
+              
+              <div class="my-4 flex items-baseline gap-2">
+                <span id="health-score-num" class="font-display text-5xl font-extrabold text-white tracking-tight">100</span>
+                <span class="text-lg text-violet-200/40 font-semibold">/ 100</span>
+              </div>
+
+              <div>
+                <div class="flex justify-between text-xs text-violet-200/60 mb-1.5">
+                  <span id="score-status-text">Postural Security</span>
+                  <span id="score-percent-text">100%</span>
+                </div>
+                <div class="h-2 w-full overflow-hidden rounded-full bg-white/10">
+                  <div id="score-progress-bar" class="h-full rounded-full transition-all duration-700 ease-out bg-emerald-400"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Severity Counters Grid -->
+            <div class="md:col-span-7 grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div class="field-glass rounded-2xl p-4 flex flex-col justify-between border-rose-400/20 bg-rose-500/5">
+                <div class="flex items-center justify-between">
+                  <span class="text-[11px] font-semibold text-rose-300 uppercase tracking-wider">High</span>
+                  <span class="h-2 w-2 rounded-full bg-rose-400"></span>
+                </div>
+                <p id="count-high" class="mt-3 font-display text-3xl font-bold text-white">0</p>
+                <span class="text-[10px] text-violet-200/40">Urgent fixes</span>
+              </div>
+
+              <div class="field-glass rounded-2xl p-4 flex flex-col justify-between border-amber-400/20 bg-amber-500/5">
+                <div class="flex items-center justify-between">
+                  <span class="text-[11px] font-semibold text-amber-300 uppercase tracking-wider">Medium</span>
+                  <span class="h-2 w-2 rounded-full bg-amber-400"></span>
+                </div>
+                <p id="count-medium" class="mt-3 font-display text-3xl font-bold text-white">0</p>
+                <span class="text-[10px] text-violet-200/40">Moderate risks</span>
+              </div>
+
+              <div class="field-glass rounded-2xl p-4 flex flex-col justify-between border-cyan-400/20 bg-cyan-500/5">
+                <div class="flex items-center justify-between">
+                  <span class="text-[11px] font-semibold text-cyan-300 uppercase tracking-wider">Low</span>
+                  <span class="h-2 w-2 rounded-full bg-cyan-400"></span>
+                </div>
+                <p id="count-low" class="mt-3 font-display text-3xl font-bold text-white">0</p>
+                <span class="text-[10px] text-violet-200/40">Minor tweaks</span>
+              </div>
+
+              <div class="field-glass rounded-2xl p-4 flex flex-col justify-between border-violet-400/20 bg-violet-500/5">
+                <div class="flex items-center justify-between">
+                  <span class="text-[11px] font-semibold text-violet-300 uppercase tracking-wider">Info</span>
+                  <span class="h-2 w-2 rounded-full bg-violet-400"></span>
+                </div>
+                <p id="count-info" class="mt-3 font-display text-3xl font-bold text-white">0</p>
+                <span class="text-[10px] text-violet-200/40">Informational</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Port Exposure & Audit Summary Grid -->
+          <div class="grid gap-4 md:grid-cols-2">
             <div class="field-glass rounded-2xl p-5">
               <div class="flex items-center justify-between">
-                <h3 class="font-display font-semibold text-white">Open ports</h3>
+                <div class="flex items-center gap-2">
+                  <svg viewBox="0 0 24 24" class="h-4.5 w-4.5 text-violet-300" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="15" x2="23" y2="15"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="15" x2="4" y2="15"/></svg>
+                  <h3 class="font-display font-semibold text-white">Port Exposure Scan</h3>
+                </div>
                 <span id="port-count" class="text-xs text-violet-200/50"></span>
               </div>
               <div id="ports" class="mt-4 flex flex-wrap gap-2"></div>
             </div>
+
             <div class="field-glass rounded-2xl p-5">
-              <h3 class="font-display font-semibold text-white">What we checked</h3>
-              <div class="mt-3 grid grid-cols-2 gap-2 text-xs text-violet-100/60">
-                <span class="rounded-lg bg-white/5 px-2.5 py-2">Common TCP ports</span>
-                <span class="rounded-lg bg-white/5 px-2.5 py-2">CSP &amp; frame policy</span>
-                <span class="rounded-lg bg-white/5 px-2.5 py-2">HTTPS enforcement</span>
-                <span class="rounded-lg bg-white/5 px-2.5 py-2">Banner disclosure</span>
+              <div class="flex items-center gap-2">
+                <svg viewBox="0 0 24 24" class="h-4.5 w-4.5 text-cyan-300" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <h3 class="font-display font-semibold text-white">Audit Checklist & Scope</h3>
+              </div>
+              <div class="mt-4 grid grid-cols-2 gap-2 text-xs text-violet-100/70 font-medium">
+                <div class="flex items-center gap-2 rounded-xl bg-white/5 p-2.5">
+                  <span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span> Open Ports Scan
+                </div>
+                <div class="flex items-center gap-2 rounded-xl bg-white/5 p-2.5">
+                  <span class="h-1.5 w-1.5 rounded-full bg-cyan-400"></span> CSP & Frame Policy
+                </div>
+                <div class="flex items-center gap-2 rounded-xl bg-white/5 p-2.5">
+                  <span class="h-1.5 w-1.5 rounded-full bg-fuchsia-400"></span> HTTPS Enforcement
+                </div>
+                <div class="flex items-center gap-2 rounded-xl bg-white/5 p-2.5">
+                  <span class="h-1.5 w-1.5 rounded-full bg-violet-400"></span> Version Disclosure
+                </div>
               </div>
             </div>
           </div>
-          <div class="mt-8">
-            <div class="flex items-center justify-between">
-              <h3 class="font-display text-lg font-bold text-white">Findings</h3>
-              <span class="text-xs text-violet-200/50">Prioritized by severity</span>
+
+          <!-- Detailed Findings Section with Tabs -->
+          <div class="pt-2">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+              <div>
+                <h3 class="font-display text-xl font-bold text-white">Security Findings</h3>
+                <p class="text-xs text-violet-200/50 mt-0.5">Filter by severity level to prioritize remediation</p>
+              </div>
+
+              <!-- Filter Tabs -->
+              <div class="filter-tabs-bar flex flex-wrap items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 p-1 text-xs">
+                <button type="button" onclick="setSeverityFilter('all')" id="tab-all" class="filter-tab active-tab rounded-lg px-3 py-1.5 font-semibold transition text-violet-200 border border-transparent">
+                  All (<span id="tab-cnt-all">0</span>)
+                </button>
+                <button type="button" onclick="setSeverityFilter('High')" id="tab-High" class="filter-tab rounded-lg px-3 py-1.5 font-semibold text-rose-300 hover:bg-rose-500/10 transition border border-transparent">
+                  High (<span id="tab-cnt-High">0</span>)
+                </button>
+                <button type="button" onclick="setSeverityFilter('Medium')" id="tab-Medium" class="filter-tab rounded-lg px-3 py-1.5 font-semibold text-amber-300 hover:bg-amber-500/10 transition border border-transparent">
+                  Medium (<span id="tab-cnt-Medium">0</span>)
+                </button>
+                <button type="button" onclick="setSeverityFilter('Low')" id="tab-Low" class="filter-tab rounded-lg px-3 py-1.5 font-semibold text-cyan-300 hover:bg-cyan-500/10 transition border border-transparent">
+                  Low (<span id="tab-cnt-Low">0</span>)
+                </button>
+                <button type="button" onclick="setSeverityFilter('Info')" id="tab-Info" class="filter-tab rounded-lg px-3 py-1.5 font-semibold text-violet-300 hover:bg-violet-500/10 transition border border-transparent">
+                  Info (<span id="tab-cnt-Info">0</span>)
+                </button>
+              </div>
             </div>
-            <div id="findings" class="mt-4 space-y-3"></div>
+
+            <!-- Findings List container -->
+            <div id="findings" class="mt-5 space-y-4"></div>
           </div>
         </div>
       </div>
@@ -251,45 +387,233 @@
     })();
 
     const form = document.getElementById('scan-form'), input = document.getElementById('target'), button = document.getElementById('scan-button'), loading = document.getElementById('loading'), report = document.getElementById('report'), error = document.getElementById('error');
-    const severity = {
-      High: ['border-rose-400/25 bg-rose-400/10 text-rose-200', 'bg-rose-400'],
-      Medium: ['border-amber-400/25 bg-amber-400/10 text-amber-200', 'bg-amber-400'],
-      Low: ['border-cyan-400/25 bg-cyan-400/10 text-cyan-200', 'bg-cyan-400'],
-      Info: ['border-white/15 bg-white/5 text-violet-100/70', 'bg-violet-300'],
+    
+    let currentScanData = null;
+    let activeFilter = 'all';
+
+    const severityConfig = {
+      High: {
+        badge: 'border-rose-400/25 bg-rose-400/10 text-rose-200',
+        dot: 'bg-rose-400',
+        icon: `<svg viewBox="0 0 24 24" class="h-5 w-5 text-rose-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`
+      },
+      Medium: {
+        badge: 'border-amber-400/25 bg-amber-400/10 text-amber-200',
+        dot: 'bg-amber-400',
+        icon: `<svg viewBox="0 0 24 24" class="h-5 w-5 text-amber-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`
+      },
+      Low: {
+        badge: 'border-cyan-400/25 bg-cyan-400/10 text-cyan-200',
+        dot: 'bg-cyan-400',
+        icon: `<svg viewBox="0 0 24 24" class="h-5 w-5 text-cyan-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`
+      },
+      Info: {
+        badge: 'border-violet-400/25 bg-violet-400/10 text-violet-200',
+        dot: 'bg-violet-300',
+        icon: `<svg viewBox="0 0 24 24" class="h-5 w-5 text-violet-300 shrink-0 mt-0.5" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>`
+      }
     };
+
     const escapeHtml = value => String(value).replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
     const plural = (count, word) => `${count} ${word}${count === 1 ? '' : 's'}`;
 
-    function renderReport(data) {
-      const count = data.vulnerabilities.length;
-      document.getElementById('report-target').textContent = data.target;
-      const countLabel = document.getElementById('finding-count');
-      countLabel.textContent = count ? plural(count, 'finding') : 'No findings';
-      countLabel.className = `rounded-full border px-3 py-1.5 text-xs font-bold ${count ? 'border-amber-400/25 bg-amber-400/10 text-amber-200' : 'border-emerald-400/25 bg-emerald-400/10 text-emerald-200'}`;
-      document.getElementById('port-count').textContent = plural(data.open_ports.length, 'detected');
-      document.getElementById('ports').innerHTML = data.open_ports.length
-        ? data.open_ports.map(port => `<span class="rounded-lg border border-violet-400/25 bg-violet-400/10 px-2.5 py-1.5 font-mono text-xs font-bold text-violet-100">:${port}</span>`).join('')
-        : '<p class="text-sm leading-6 text-violet-100/50">No open ports found in the common-port list.</p>';
-      document.getElementById('findings').innerHTML = count ? data.vulnerabilities.map((item, index) => {
-        const [badge, dot] = severity[item.severity] || severity.Info;
-        return `<article class="group field-glass rounded-2xl p-5 transition hover:border-white/20">
-          <div class="flex flex-wrap items-start justify-between gap-3">
-            <div class="flex gap-3">
-              <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full ${dot}"></span>
-              <div>
-                <p class="text-[11px] font-bold uppercase tracking-[.15em] text-violet-200/40">Finding ${String(index + 1).padStart(2, '0')}</p>
-                <h4 class="mt-1 font-display font-semibold text-white">${escapeHtml(item.issue)}</h4>
-              </div>
+    function calculateHealth(vulns) {
+      let score = 100;
+      vulns.forEach(v => {
+        if (v.severity === 'High') score -= 30;
+        else if (v.severity === 'Medium') score -= 15;
+        else if (v.severity === 'Low') score -= 5;
+      });
+      score = Math.max(0, Math.min(100, score));
+
+      let grade = 'A+';
+      let badgeClass = 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300';
+      let barClass = 'bg-gradient-to-r from-emerald-400 to-teal-300';
+      let statusText = 'Excellent Posture';
+
+      if (score < 40) {
+        grade = 'F';
+        badgeClass = 'border-rose-400/30 bg-rose-400/10 text-rose-300';
+        barClass = 'bg-gradient-to-r from-rose-500 to-red-400';
+        statusText = 'Critical Action Required';
+      } else if (score < 60) {
+        grade = 'D';
+        badgeClass = 'border-orange-400/30 bg-orange-400/10 text-orange-300';
+        barClass = 'bg-gradient-to-r from-orange-500 to-amber-400';
+        statusText = 'Poor Security Posture';
+      } else if (score < 75) {
+        grade = 'C';
+        badgeClass = 'border-amber-400/30 bg-amber-400/10 text-amber-300';
+        barClass = 'bg-gradient-to-r from-amber-400 to-yellow-300';
+        statusText = 'Remediation Recommended';
+      } else if (score < 90) {
+        grade = 'B';
+        badgeClass = 'border-cyan-400/30 bg-cyan-400/10 text-cyan-300';
+        barClass = 'bg-gradient-to-r from-cyan-400 to-blue-300';
+        statusText = 'Good Security Posture';
+      }
+
+      return { score, grade, badgeClass, barClass, statusText };
+    }
+
+    function setSeverityFilter(sev) {
+      activeFilter = sev;
+      document.querySelectorAll('.filter-tab').forEach(btn => btn.classList.remove('active-tab'));
+      const activeBtn = document.getElementById(`tab-${sev}`);
+      if (activeBtn) activeBtn.classList.add('active-tab');
+      renderFindingsList();
+    }
+
+    function renderFindingsList() {
+      if (!currentScanData) return;
+      const findingsContainer = document.getElementById('findings');
+      const vulns = currentScanData.vulnerabilities || [];
+      const filtered = activeFilter === 'all' ? vulns : vulns.filter(item => item.severity === activeFilter);
+
+      if (filtered.length === 0) {
+        findingsContainer.innerHTML = `
+          <div class="field-glass rounded-2xl p-8 text-center">
+            <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-400/10 text-emerald-300">
+              <svg viewBox="0 0 24 24" class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
             </div>
-            <span class="rounded-md border px-2.5 py-1 text-xs font-bold ${badge}">${escapeHtml(item.severity)}</span>
-          </div>
-          <p class="mt-4 pl-5 text-sm leading-6 text-violet-100/55">${escapeHtml(item.description)}</p>
-          <div class="ml-5 mt-4 border-l-2 border-violet-400/60 bg-violet-400/5 px-4 py-3 text-sm leading-6 text-violet-100/80">
-            <span class="font-semibold text-violet-200">Recommended fix</span><span class="mx-2 text-violet-300/30">/</span>${escapeHtml(item.suggestion)}
-          </div>
-        </article>`;
-      }).join('') : '<div class="field-glass rounded-2xl p-6 text-center"><div class="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-emerald-400/10 text-emerald-300">✓</div><h4 class="mt-3 font-display font-semibold text-emerald-200">No findings detected</h4><p class="mt-1 text-sm text-violet-100/50">The checked headers and common banner fields did not produce any findings.</p></div>';
-      report.classList.remove('hidden'); report.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            <h4 class="mt-3 font-display font-semibold text-emerald-200 text-base">No findings in this category</h4>
+            <p class="mt-1 text-xs text-violet-100/50">Everything checked passed cleanly or no items match the selected filter.</p>
+          </div>`;
+        return;
+      }
+
+      findingsContainer.innerHTML = filtered.map((item, idx) => {
+        const conf = severityConfig[item.severity] || severityConfig.Info;
+        const fixText = item.suggestion ? item.suggestion.replace(/"/g, '&quot;') : '';
+        return `
+          <article class="group field-glass rounded-2xl p-5 sm:p-6 transition hover:border-white/20">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div class="flex items-start gap-3 min-w-0 flex-1">
+                ${conf.icon}
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-2">
+                    <span class="text-[10px] font-bold uppercase tracking-[.15em] text-violet-200/40">Finding ${String(idx + 1).padStart(2, '0')}</span>
+                  </div>
+                  <h4 class="mt-0.5 font-display font-semibold text-white text-base">${escapeHtml(item.issue)}</h4>
+                </div>
+              </div>
+              <span class="rounded-lg border px-3 py-1 text-xs font-bold shrink-0 ${conf.badge}">${escapeHtml(item.severity)}</span>
+            </div>
+
+            <p class="mt-3.5 pl-8 text-sm leading-6 text-violet-100/60">${escapeHtml(item.description)}</p>
+
+            <div class="ml-8 mt-4 rounded-xl border border-violet-400/20 bg-violet-400/5 p-4 transition group-hover:border-violet-400/30">
+              <div class="flex items-center justify-between gap-2 mb-2">
+                <span class="text-xs font-semibold uppercase tracking-wider text-violet-200 flex items-center gap-1.5">
+                  <svg viewBox="0 0 24 24" class="h-3.5 w-3.5 text-violet-300" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                  Recommended Fix
+                </span>
+                <button type="button" onclick="copyFix('${escapeHtml(fixText)}', this)" class="inline-flex items-center gap-1 text-[11px] font-semibold text-violet-300 hover:text-white bg-violet-400/10 hover:bg-violet-400/20 border border-violet-400/20 rounded-md px-2.5 py-1 transition">
+                  <svg viewBox="0 0 24 24" class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                  <span>Copy Fix</span>
+                </button>
+              </div>
+              <p class="text-xs leading-6 text-violet-100/85 font-mono bg-black/20 rounded-lg p-2.5 border border-white/5">${escapeHtml(item.suggestion)}</p>
+            </div>
+          </article>
+        `;
+      }).join('');
+    }
+
+    function renderReport(data) {
+      currentScanData = data;
+      const vulns = data.vulnerabilities || [];
+      const ports = data.open_ports || [];
+
+      document.getElementById('report-target').textContent = data.target;
+      document.getElementById('scan-timestamp').textContent = `• ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+
+      // Calculate health & grade
+      const { score, grade, badgeClass, barClass, statusText } = calculateHealth(vulns);
+      document.getElementById('health-score-num').textContent = score;
+      document.getElementById('score-percent-text').textContent = `${score}%`;
+      document.getElementById('score-status-text').textContent = statusText;
+      
+      const gradeBadge = document.getElementById('score-grade-badge');
+      gradeBadge.textContent = `Grade ${grade}`;
+      gradeBadge.className = `rounded-full border px-3 py-1 text-xs font-bold ${badgeClass}`;
+
+      const progressBar = document.getElementById('score-progress-bar');
+      progressBar.style.width = `${score}%`;
+      progressBar.className = `h-full rounded-full transition-all duration-700 ease-out ${barClass}`;
+
+      // Severity counters
+      const counts = { High: 0, Medium: 0, Low: 0, Info: 0 };
+      vulns.forEach(v => { counts[v.severity] = (counts[v.severity] || 0) + 1; });
+
+      document.getElementById('count-high').textContent = counts.High;
+      document.getElementById('count-medium').textContent = counts.Medium;
+      document.getElementById('count-low').textContent = counts.Low;
+      document.getElementById('count-info').textContent = counts.Info;
+
+      document.getElementById('tab-cnt-all').textContent = vulns.length;
+      document.getElementById('tab-cnt-High').textContent = counts.High;
+      document.getElementById('tab-cnt-Medium').textContent = counts.Medium;
+      document.getElementById('tab-cnt-Low').textContent = counts.Low;
+      document.getElementById('tab-cnt-Info').textContent = counts.Info;
+
+      // Ports rendering
+      document.getElementById('port-count').textContent = plural(ports.length, 'port');
+      const portsContainer = document.getElementById('ports');
+      if (ports.length) {
+        portsContainer.innerHTML = ports.map(port => {
+          const isSensitive = [21, 22, 3306, 8080].includes(port);
+          const style = isSensitive 
+            ? 'border-amber-400/30 bg-amber-400/10 text-amber-200' 
+            : 'border-cyan-400/30 bg-cyan-400/10 text-cyan-200';
+          return `<span class="inline-flex items-center gap-1.5 rounded-lg border ${style} px-3 py-1.5 font-mono text-xs font-bold">
+            <span class="h-1.5 w-1.5 rounded-full ${isSensitive ? 'bg-amber-400' : 'bg-cyan-400'}"></span>
+            :${port}
+          </span>`;
+        }).join('');
+      } else {
+        portsContainer.innerHTML = '<p class="text-xs leading-6 text-violet-100/50">No open ports detected in standard scan list.</p>';
+      }
+
+      setSeverityFilter('all');
+      report.classList.remove('hidden');
+      report.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function copyFix(text, btn) {
+      if (!text) return;
+      navigator.clipboard.writeText(text).then(() => {
+        const span = btn.querySelector('span');
+        const oldText = span.textContent;
+        span.textContent = 'Copied! ✓';
+        btn.classList.add('text-emerald-300', 'border-emerald-400/40');
+        setTimeout(() => {
+          span.textContent = oldText;
+          btn.classList.remove('text-emerald-300', 'border-emerald-400/40');
+        }, 1800);
+      }).catch(() => {
+        // Fallback if clipboard permission fails
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        textarea.remove();
+        const span = btn.querySelector('span');
+        span.textContent = 'Copied! ✓';
+        setTimeout(() => { span.textContent = 'Copy Fix'; }, 1800);
+      });
+    }
+
+    function exportReportJson() {
+      if (!currentScanData) return;
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(currentScanData, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `prism-scan-${currentScanData.target || 'report'}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
     }
 
     form.addEventListener('submit', async event => {
